@@ -1,0 +1,14 @@
+This package contains a class and script to execute a proxy requests from AJAX
+ scripts. If this proxy.php was live on a server at example.com/proxy.php, and we
+ wanted to make AJAX requests to subdomain.example.com/other/resource, we'd:
+
+     1. Add lines at the bottom of this file to say
+         $proxy = new Proxy('http://subdomain.example.com');
+         $proxy->execute();
+     2. From our javascript, make requests to
+         http://example.com/proxy.php?route=/other/resource
+
+Also included is a set of PHP-docs with detailed documentation in case it's
+ needed.
+
+- Kenny Katzgrau <kkatzgrau@hugeinc.com>
