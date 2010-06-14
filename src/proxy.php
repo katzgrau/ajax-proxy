@@ -1,5 +1,16 @@
 <?php
 /**
+ * IceCube (ice_cube4p)
+ *
+ * LICENSE
+ *
+ * This source file is subject to the new BSD license that is bundled
+ * with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://hugeinc.com/license/********
+ *
+ * FILE DOCUMENTATION
+ *
  * This file contains a class and script to execute a proxy requests from AJAX
  *  scripts. If this file was live on a server at example.com/proxy.php, and we
  *  wanted to make AJAX requests to subdomain.example.com/other/resource, we'd:
@@ -11,6 +22,11 @@
  * The heart of the functionality of this script is self-contained, reusable
  *  proxy class. This class could very easily be incorporated into an MVC
  *  framework or set of libraries.
+ * 
+ * @todo Finalize licensing above
+ * @package IceCube
+ * @copyright Copyright (c) 2010 HUGE LLC (http://hugeinc.com)
+ * @license New BSD License
  * @author Kenny Katzgrau <kkatzgrau@hugeinc.com>
  */
 
