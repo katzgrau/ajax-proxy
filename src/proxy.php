@@ -11,6 +11,9 @@
  *
  * FILE DOCUMENTATION
  *
+ * More extensive documentation is located in README.markdown, which is
+ *  contained in this package.
+ *
  * This file contains a class and script to execute a proxy requests from AJAX
  *  scripts. If this file was live on a server at example.com/proxy.php, and we
  *  wanted to make AJAX requests to subdomain.example.com/other/resource, we'd:
