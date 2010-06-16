@@ -1,13 +1,10 @@
 <?php
 /**
- * IceCube (ice_cube4p)
- *
+ * 
  * LICENSE
  *
  * This source file is subject to the new BSD license that is bundled
  * with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://hugeinc.com/license/********
  *
  * FILE DOCUMENTATION
  *
@@ -56,7 +53,7 @@ class Proxy
      *  proxy
      * @var string
      */
-    private $_allowedHostname   = NULL;
+    private $_allowedHostnames  = NULL;
 
     /**
      * Will hold the host where proxy requests will be forwarded to
@@ -132,13 +129,21 @@ class Proxy
      * Initialies the Proxy object
      * @param string $forward_host The base address that all requests will be
      *  forwarded to. Must not end in a trailing slash.
-     * @param string $allowed_hostname If you want to restrict proxy requests
-     *  to only come from a certain hostname or IP, set that here.
+     * @param string|array $allowed_hostname If you want to restrict proxy
+     *  requests to only come from a certain hostname or IP, you can supply
+     *  a single hostname as a string, or an array of hostnames.
      */
-    public function  __construct($forward_host, $allowed_hostname = NULL)
+    public function  __construct($forward_host, $allowed_hostnames = NULL)
     {
-        $this->_forwardHost     = $forward_host;
-        $this->_allowedHostname = $allowed_hostname;
+        $this->_forwardHost      = $forward_host;
+
+        if($allowed_hostnames !== NULL)
+        {
+            if(is_array($allowed_hostnames))
+                $this->_allowedHostnames = $allowed_hostnames;
+            else
+                $this->_allowedHostnames = array($allowed_hostnames);
+        }
     }
 
     /**
@@ -293,7 +298,7 @@ class Proxy
      */
     private function _checkPermissions()
     {
-        if($this->_allowedHostname === NULL)
+        if($this->_allowedHostnames === NULL)
             return;
 
         if(key_exists('REMOTE_HOST', $_SERVER))
@@ -301,7 +306,7 @@ class Proxy
         else
             $host = $_SERVER['REMOTE_ADDR'];
 
-        if($this->_allowedHostname != $host)
+        if(!in_array($host, $this->_allowedHostnames))
             throw new Exception("Requests from hostname ($host) are not allowed");
     }
 
@@ -332,6 +337,16 @@ class Proxy
         curl_setopt($curl_handle, CURLOPT_HTTPHEADER, $this->_generateProxyRequestHeaders());
 
         $this->_rawResponse = curl_exec($curl_handle);
+    }
+
+    private function _makeCurlRequest($options)
+    {
+        
+    }
+
+    private function _makeFOpenRequest()
+    {
+        
     }
 
     /**
@@ -461,5 +476,5 @@ class Proxy
  * Here's the actual script part. Comment it out or remove it if you simple want
  *  the class' functionality
  */
-$proxy = new Proxy('http://sso.dev.ivillage.com/');
+$proxy = new Proxy('http://subdomain.example.com');
 $proxy->execute();
