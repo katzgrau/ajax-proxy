@@ -344,7 +344,7 @@ class Proxy
         $url = $this->_forwardHost . $this->_route;
         
         # Check for cURL. If it isn't loaded, fall back to fopen()
-        if(!function_exists('curl_init'))
+        if(function_exists('curl_init'))
             $this->_rawResponse = $this->_makeCurlRequest($url);
         else
             $this->_rawResponse = $this->_makeFOpenRequest($url);
