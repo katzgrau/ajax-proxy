@@ -609,5 +609,5 @@ class Proxy
  * Here's the actual script part. Comment it out or remove it if you simple want
  *  the class' functionality
  */
-$proxy = new Proxy('http://sso.dev.ivillage.com/');
+$proxy = new Proxy('http://login.example.com/');
 $proxy->execute();
