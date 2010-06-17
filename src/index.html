@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+    <head>
+        <title>iVillage Cross-Domain SSO Test</title>
+        <link rel="stylesheet" href="http://sso.dev.ivillage.com/public/sso/sso.css" type="text/css" />
+        <script type="text/javascript" src="http://static.ak.connect.facebook.com/js/api_lib/v0.4/FeatureLoader.js.php/en_US"></script>
+        <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+        <script type="text/javascript" src="http://sso.dev.ivillage.com/public/sso/dependencies.js"></script>
+        <script type="text/javascript" src="http://sso.dev.ivillage.com/public/sso/sso_colorbox.js"></script>
+        <script type="text/javascript" src="http://sso.dev.ivillage.com/public/sso/sso.js"></script>
+        <script type="text/javascript">
+            (function($) {
+                $(document).ready(function() {
+                    iV_SSO.init({
+                        baseUrl: "/proxy.php?route=",
+                        vertical: 6
+                    });
+                    $("a").click(iV_SSO.login);
+                });
+            })(jQuery);
+        </script>
+    </head>
+    <body>
+        <div>
+            <a href="#">Login</a>
+        </div>
+    </body>
+</html>

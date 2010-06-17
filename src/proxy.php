@@ -160,6 +160,7 @@ class Proxy
             $this->_makeRequest();
             $this->_parseResponse();
             $this->_buildAndExecuteProxyResponse();
+            
         }
         catch(Exception $ex)
         {
@@ -167,6 +168,30 @@ class Proxy
                             . $ex->getMessage()
                             . " | ". basename(__FILE__) .", Line: " . $ex->getLine());
         }
+    }
+
+    /**
+     * Return the string form of the request method constant
+     * @param int $type A request method type constant, like
+     *  self::REQUEST_METHOD_POST
+     * @return string The string form of the passed constant, like POST
+     */
+    private static function _getStringFromRequestType($type)
+    {
+        $name = '';
+
+        if($type === self::REQUEST_METHOD_POST)
+            $name = "POST";
+        elseif($type === self::REQUEST_METHOD_GET)
+            $name = "GET";
+        elseif($type === self::REQUEST_METHOD_PUT)
+            $name = "PUT";
+        elseif($type === self::REQUEST_METHOD_DELETE)
+            $name = "DELETE";
+        else
+            throw new Exception("Unknown request method constant ($type) passed as a parameter");
+
+        return $name;
     }
 
     /**
@@ -317,9 +342,23 @@ class Proxy
     private function _makeRequest()
     {
         $url = $this->_forwardHost . $this->_route;
+        
+        # Check for cURL. If it isn't loaded, fall back to fopen()
+        if(!function_exists('curl_init'))
+            $this->_rawResponse = $this->_makeCurlRequest($url);
+        else
+            $this->_rawResponse = $this->_makeFOpenRequest($url);
+    }
 
+    /**
+     * Given the object's current settings, make a request to the given url
+     *  using the cURL library
+     * @param string $url The url to make the request to
+     * @return string The full HTTP response
+     */
+    private function _makeCurlRequest($url)
+    {
         $curl_handle = curl_init($url);
-
         /**
          * Check to see if this is a POST request
          * @todo What should we do for PUTs? Others?
@@ -336,17 +375,93 @@ class Proxy
         curl_setopt($curl_handle, CURLOPT_COOKIE, $this->_buildProxyRequestCookieString());
         curl_setopt($curl_handle, CURLOPT_HTTPHEADER, $this->_generateProxyRequestHeaders());
 
-        $this->_rawResponse = curl_exec($curl_handle);
+        return curl_exec($curl_handle);
     }
 
-    private function _makeCurlRequest($options)
+    /**
+     * Given the object's current settings, make a request to the supplied url
+     *  using PHP's native, less speedy, fopen functions
+     * @param string $url The url to make the request to
+     * @return string The full HTTP response
+     */
+    private function _makeFOpenRequest($url)
     {
-        
+        $context      = $this->_buildFOpenStreamContext();
+        $file_pointer = fopen($url, 'r', null, $context);
+
+        if(!$file_pointer)
+            throw new Exception("You must have either cURL or fopen() enabled");
+
+        $meta    = stream_get_meta_data($file_pointer);
+        $headers = $this->_buildResponseHeaderFromMeta($meta);
+        $content = stream_get_contents($file_pointer);
+
+        fclose($file_pointer);
+
+        return "$headers\r\n\r\n$content";
     }
 
-    private function _makeFOpenRequest()
+    /**
+     * Given an associative array returned by PHP's methods to get stream meta,
+     *  extract the HTTP response header from it
+     * @param array $meta The associative array contianing stream information
+     * @return array 
+     */
+    private function _buildResponseHeaderFromMeta($meta)
     {
-        
+        if(! array_key_exists('wrapper_data', $meta))
+            throw new Exception("Did not receive a valid response from the server");
+
+        $headers = $meta['wrapper_data'];
+
+        /**
+         * When using stream_context_create, if the socket is redirected via a
+         *  302, PHP just adds the 302 headers onto the wrapper_data array
+         *  in addition to the headers from the redirected page. We only
+         *  want the redirected page's headers.
+         */
+        $last_status = 0;
+        for($i = 0; $i < count($headers); $i++)
+        {
+            if(strpos($headers[$i], 'HTTP/') === 0)
+            {
+                $last_status = $i;
+            }
+        }
+
+        # Get the applicable portion of the headers
+        $headers = array_slice($headers, $last_status);
+
+        return implode("\n", $headers);
+    }
+
+    /**
+     * Given the object's current settings, build a context array for PHP's
+     *  fopen() methods to work with
+     * @return array The associative array containing context information
+     */
+    private function _buildFOpenStreamContext()
+    {
+        # Set the headers required to work with fopen
+        $headers =  $this->_generateProxyRequestHeaders(TRUE);
+        $headers.= 'Cookie: ' . $this->_buildProxyRequestCookieString();
+
+        # Create the stream context
+        $stream_context = array (
+            'header'        => $headers,
+            'user_agent'    => $this->_requestUserAgent
+        );
+
+        # Figure out what kind of request we're making, and what to fill it with
+        $stream_context['method'] = $this->_getStringFromRequestType($this->_requestMethod);
+
+        if($this->_requestMethod === self::REQUEST_METHOD_POST ||
+           $this->_requestMethod === self::REQUEST_METHOD_PUT)
+        {
+            $stream_context['content'] = $this->_requestBody;
+        }
+
+        return stream_context_create(array('http' => $stream_context));
     }
 
     /**
@@ -356,8 +471,12 @@ class Proxy
      */
     private function _parseResponse()
     {
-        $break   = strpos($this->_rawResponse, "\r\n\r\n");
-
+        /**
+         * According to the HTTP spec, we have to respect \n\n too
+         *  @todo: Respect \n\n
+         */
+        $break = strpos($this->_rawResponse, "\r\n\r\n");
+        
         # Let's check to see if we recieved a header but no body
         if($break === FALSE)
         {
@@ -412,12 +531,25 @@ class Proxy
 
     /**
      * Generate and return any headers needed to make the proxy request
-     * @return array
+     * @param bool $as_string Whether to return the headers as a string instead
+     *  of an associative array
+     * @return array|string
      */
-    private function _generateProxyRequestHeaders()
+    private function _generateProxyRequestHeaders($as_string = FALSE)
     {
         $headers                 = array();
         $headers['Content-Type'] = $this->_requestContentType;
+
+        if($as_string)
+        {
+            $data = "";
+            foreach($headers as $name => $value)
+                if($value)
+                    $data .= "$name: $value\n";
+
+            $headers = $data;
+        }
+
         return $headers;
     }
 
@@ -458,6 +590,7 @@ class Proxy
     private function _buildAndExecuteProxyResponse()
     {
         $this->_generateProxyResponseHeaders();
+        
         $this->_output($this->_responseBody);
     }
 
@@ -476,5 +609,5 @@ class Proxy
  * Here's the actual script part. Comment it out or remove it if you simple want
  *  the class' functionality
  */
-$proxy = new Proxy('http://subdomain.example.com');
+$proxy = new Proxy('http://sso.dev.ivillage.com/');
 $proxy->execute();
