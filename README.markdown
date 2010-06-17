@@ -1,5 +1,11 @@
 # ajax-proxy
 
+An extensively easy-to-use proxy class and script for facilitating cross-domain
+ajax calls that **supports cookies** and has minimal dependencies
+(**works without cURL!**)
+
+Written and maintained by [Kenny Katzgrau](http://codefury.net) @ [HUGE](http://hugeinc.com)
+
 ## Overview
 
 This package is a PHP class and script to proxy AJAX request accross domains.
@@ -10,6 +16,9 @@ This proxy does not simply forward request and response bodies, it also forwards
 cookies, user-agent strings, and content-types. This makes is extensively useful
 for performing operations like ajax-based logins accross domains (which usually
 rely on cookies).
+
+Additionally, it will use cURL by default, and fall back to using the slower,
+but native fopen() functionality when cURL isn't available.
 
 The class' functionality is encapsulated in a single, standalone class, so
 incorporation into larger applications or frameworks can be easily done. It may
@@ -43,8 +52,8 @@ is optional.
 1. `$forward_host`, which is where all requests to the proxy will be routed.
 2. `$allowed_hostname`, which an optional paramater. Is this is supplied, it
    should be a hostname or ip address that you would like to restrict requests
-   to. This way, you can make sure that only requests from fun.example.com ever
-   access the proxy.
+   to. Alternatively, it can be an array of hostnames or IPs. This way, you can
+   make sure that only requests from certain clients ever access the proxy.
 
 The second line executes the proxy request. In the event of failure, the proxy
 will halt and produce an error message. Error messages in this application are
@@ -73,6 +82,32 @@ login.example.com will be sending authentication or session cookies, make sure
 they have an appropriate cookies domain set so that the client's browser will
 accept them at fun.example.com (for example, a domain of '*.example.com' would
 work fine.
+
+## Dependencies
+
+This class can use two different methods to make it's requests: cURL, and the
+native fopen(). Since cURL is known to be quite a bit faster, the class first
+checks for the availability of cURL, and will fallback to fopen() if needed.
+
+At least one of these must be true:
+
+1. fopen() requests are enabled via the `allow_url_fopen` option in
+   php.ini. For more on that: [see the php manual](http://www.php.net/manual/en/filesystem.configuration.php#ini.allow-url-fopen)
+2. cURL is installed and loaded as a PHP module. The official docs are 
+   [here](http://php.net/manual/en/book.curl.php),
+   but sane people will probably do something like `$ sudo apt-get install php5-curl`
+
+## Special Thanks
+
+A special thanks several key players on the HUGE team that offered valuable
+feedback, feature suggestions, and/or their time in a code review:
+
+* Brett Mayen @ LA
+* Daryl Bowden @ NY
+* [Sankho Mallik](http://sankhomallik.com/) @ NY
+* Martin Olsen @ NY
+* [Patrick O'Neill](http://misteroneill.com/) @ NY
+* [Tim McDuffie](http://www.tmcduffie.com/) @ NY
 
 ## Maintainer
 
