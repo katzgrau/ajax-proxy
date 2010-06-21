@@ -42,18 +42,24 @@ fun.example.com/proxy.php
 
 At the bottom of proxy.php, there are two lines of code:
 
-    $proxy = new Proxy('http://login.example.com/');
+    $proxy = new AjaxProxy('http://login.example.com/');
     $proxy->execute();
 
 The first line created the proxy object. The proxy object performs the entirety
-of the work. The Proxy class' constructor takes 2 arguments, the last of which
-is optional.
+of the work. The AjaxProxy class' constructor takes 3 arguments, the last of
+which is optional.
 
 1. `$forward_host`, which is where all requests to the proxy will be routed.
-2. `$allowed_hostname`, which an optional paramater. Is this is supplied, it
+2. `$allowed_hostname`, which an optional parameter. Is this is supplied, it
    should be a hostname or ip address that you would like to restrict requests
    to. Alternatively, it can be an array of hostnames or IPs. This way, you can
    make sure that only requests from certain clients ever access the proxy.
+3. `$handle_errors`, which is a boolean flag with a default value of TRUE. If
+   enabled, the object will use it's own error and exception handlers. This is
+   useful if you plan to use proxy.php as a standalone script. If you are
+   incorporating the class into a larger framework, although, you will likely
+   want to specify false so it does not override any error and exception
+   handling in your application.
 
 The second line executes the proxy request. In the event of failure, the proxy
 will halt and produce an error message. Error messages in this application are
@@ -102,8 +108,8 @@ At least one of these must be true:
 A special thanks several key players on the HUGE team that offered valuable
 feedback, feature suggestions, and/or their time in a code review:
 
-* Brett Mayen @ LA
-* Daryl Bowden @ NY
+* Brett Mayen @ NY
+* Daryl Bowden @ LA
 * [Sankho Mallik](http://sankhomallik.com/) @ NY
 * Martin Olsen @ NY
 * [Patrick O'Neill](http://misteroneill.com/) @ NY

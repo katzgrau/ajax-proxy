@@ -15,7 +15,7 @@
  *  scripts. If this file was live on a server at example.com/proxy.php, and we
  *  wanted to make AJAX requests to subdomain.example.com/other/resource, we'd:
  *      1. Add lines at the bottom of this file to say
- *          $proxy = new Proxy('http://subdomain.example.com');
+ *          $proxy = new AjaxProxy('http://subdomain.example.com');
  *          $proxy->execute();
  *      2. From our javascript, make requests to
  *          http://example.com/proxy.php?route=/other/resource
@@ -32,16 +32,17 @@
 
 /**
  * This class handles all of the functionality of the proxy server. The only
- *  public method is Proxy::execute(), so once the class is constructed, the
+ *  public method is AjaxProxy::execute(), so once the class is constructed, the
  *  only option is to execute the proxy request. It will throw exceptions when
  *  something isn't right, the message of which will be dumped to the output
  *  stream.
  *
  * There is an option to restrict requests so that they can only be made from
  *  certain hostnames or ips in the constructor
+ * 
  * @author Kenny Katzgrau <kkatzgrau@hugeinc.com>
  */
-class Proxy
+class AjaxProxy
 {
     const REQUEST_METHOD_POST    = 1;
     const REQUEST_METHOD_GET     = 2;
@@ -126,16 +127,26 @@ class Proxy
     private $_route             = NULL;
 
     /**
-     * Initialies the Proxy object
+     * Initializes the Proxy object
+     *
      * @param string $forward_host The base address that all requests will be
      *  forwarded to. Must not end in a trailing slash.
+     *
      * @param string|array $allowed_hostname If you want to restrict proxy
      *  requests to only come from a certain hostname or IP, you can supply
      *  a single hostname as a string, or an array of hostnames.
+     *
+     * @param bool $handle_errors This should be true if you want this class to
+     *  catch and handle it's own errors and exception. This makes sense if you
+     *  are using this class as a standalone script. If you are using it in a
+     *  larger application with it's own error and exception handling, you
+     *  should set this to false, or it will override your settings.
      */
-    public function  __construct($forward_host, $allowed_hostnames = NULL)
+    public function  __construct(   $forward_host,
+                                    $allowed_hostnames = NULL,
+                                    $handle_errors     = TRUE)
     {
-        $this->_forwardHost      = $forward_host;
+        $this->_forwardHost = $forward_host;
 
         if($allowed_hostnames !== NULL)
         {
@@ -144,6 +155,9 @@ class Proxy
             else
                 $this->_allowedHostnames = array($allowed_hostnames);
         }
+        
+        if($handle_errors)
+            $this->_setErrorHandlers();
     }
 
     /**
@@ -153,21 +167,11 @@ class Proxy
      */
     public function execute()
     {
-        try
-        {
             $this->_checkPermissions();
             $this->_gatherRequestInfo();
             $this->_makeRequest();
             $this->_parseResponse();
             $this->_buildAndExecuteProxyResponse();
-            
-        }
-        catch(Exception $ex)
-        {
-            $this->_output("There was an error processing your request: " 
-                            . $ex->getMessage()
-                            . " | ". basename(__FILE__) .", Line: " . $ex->getLine());
-        }
     }
 
     /**
@@ -229,7 +233,13 @@ class Proxy
 
     /**
      * Get the request body raw from the PHP input stream and store it in the
-     *  _requestBody property
+     *  _requestBody property.
+     * 
+     * There have been concerns with blindly reading the entirety of an input
+     *  stream with no maximum length, but this is limited with the maximum
+     *  request size in php.ini. Additionally, Zend_Amf_Request_Http does the
+     *  same.
+     *
      */
     private function _loadRequestBody()
     {
@@ -265,7 +275,6 @@ class Proxy
     /**
      * Loads the user-agent string into the _requestUserAgent property
      * @throws Exception When the user agent is not sent by the client
-     * @todo Is the above really needed?
      */
     private function _loadRequestUserAgent()
     {
@@ -387,10 +396,10 @@ class Proxy
     private function _makeFOpenRequest($url)
     {
         $context      = $this->_buildFOpenStreamContext();
-        $file_pointer = fopen($url, 'r', null, $context);
+        $file_pointer = @fopen($url, 'r', null, $context);
 
         if(!$file_pointer)
-            throw new Exception("You must have either cURL or fopen() enabled");
+            throw new Exception("There was an error making the request. Make sure that the url is valid, and either fopen or cURL are available.");
 
         $meta    = stream_get_meta_data($file_pointer);
         $headers = $this->_buildResponseHeaderFromMeta($meta);
@@ -531,7 +540,7 @@ class Proxy
 
     /**
      * Generate and return any headers needed to make the proxy request
-     * @param bool $as_string Whether to return the headers as a string instead
+     * @param  bool $as_string Whether to return the headers as a string instead
      *  of an associative array
      * @return array|string
      */
@@ -562,11 +571,8 @@ class Proxy
     {
         $cookie_string  = '';
 
-        foreach($this->_requestCookies as $name => $value)
-        {
-            $value          = urlencode($value);
-            $cookie_string .= "$name=$value; ";
-        }
+        if(key_exists('Cookie', $this->_rawHeaders))
+            $cookie_string = $this->_rawHeaders['Cookie'];
 
         return $cookie_string;
     }
@@ -603,11 +609,59 @@ class Proxy
     {
         echo $data;
     }
+
+    /**
+     * Make it so that this class handles it's own errors. This means that
+     *  it will register PHP error and exception handlers, and die() if there
+     *  is a problem. 
+     */
+    private function _setErrorHandlers()
+    {
+        set_error_handler(array($this, 'handleError'));
+        set_exception_handler(array($this, 'handleException'));
+    }
+
+    /**
+     * A callback method for PHP's set_error_handler function. Used to handle
+     *  application-wide errors
+     * @param int       $code
+     * @param string    $message
+     * @param string    $file
+     * @param int       $line
+     */
+    public function handleError($code, $message, $file, $line)
+    {
+        $this->_sendFatalError("Fatal proxy Error: '$message' in $file:$line");
+    }
+
+    /**
+     * A callback method for PHP's set_exception_handler function. Used to
+     *  handle application-wide exceptions.
+     * @param Exception $exception The exception being thrown
+     */
+    public function handleException(Exception $exception)
+    {
+        $this->_sendFatalError("Fatal proxy Exception: '"
+                               . $exception->getMessage()
+                               . "' in "
+                               . $exception->getFile()
+                               . ":"
+                               . $exception->getLine());
+    }
+
+    /**
+     * Display a fatal error to the user. This will halt execution.
+     * @param string $message
+     */
+    private static function _sendFatalError($message)
+    {
+        die($message);
+    }
 }
 
 /**
- * Here's the actual script part. Comment it out or remove it if you simple want
+ * Here's the actual script part. Comment it out or remove it if you simply want
  *  the class' functionality
  */
-$proxy = new Proxy('http://login.example.com/');
+$proxy = new AjaxProxy('http://login.example.com/');
 $proxy->execute();
