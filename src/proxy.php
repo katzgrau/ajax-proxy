@@ -351,7 +351,7 @@ class AjaxProxy
     private function _makeRequest()
     {
         $url = $this->_forwardHost . $this->_route;
-        
+
         # Check for cURL. If it isn't loaded, fall back to fopen()
         if(function_exists('curl_init'))
             $this->_rawResponse = $this->_makeCurlRequest($url);
@@ -484,14 +484,21 @@ class AjaxProxy
          * According to the HTTP spec, we have to respect \n\n too
          *  @todo: Respect \n\n
          */
-        $break = strpos($this->_rawResponse, "\r\n\r\n");
+        $break_1 = strpos($this->_rawResponse, "\r\n\r\n");
+        $break_2 = strpos($this->_rawResponse, "\n\n");
+        $break   = 0;
+
+        if    ($break_1 && $break_2 === FALSE) $break = $break_1;
+        elseif($break_2 && $break_1 === FALSE) $break = $break_2;
+        elseif($break_1 < $break_2) $break = $break_1;
+        else $break = $break_2;
         
         # Let's check to see if we recieved a header but no body
         if($break === FALSE)
         {
             $look_for = 'HTTP/';
 
-            if(substr($this->_rawResponse, 0, strlen($look_for)))
+            if(strpos($this->_rawResponse, $look_for) !== FALSE)
                 $break = strlen($this->_rawResponse);
             else
                 throw new Exception("A valid response was not received from the host");
