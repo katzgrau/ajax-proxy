@@ -54,77 +54,77 @@ class AjaxProxy
      *  proxy
      * @var string
      */
-    private $_allowedHostnames  = NULL;
+    protected $_allowedHostnames  = NULL;
 
     /**
      * Will hold the host where proxy requests will be forwarded to
      * @var string
      */
-    private $_forwardHost       = NULL;
+    protected $_forwardHost       = NULL;
 
     /**
      * Will hold the HTTP request method of the proxy request
      * @var string
      */
-    private $_requestMethod     = NULL;
+    protected $_requestMethod     = NULL;
 
     /**
      * Will hold the cookies submitted by the client for the proxy request
      * @var string
      */
-    private $_requestCookies    = NULL;
+    protected $_requestCookies    = NULL;
 
     /**
      * Will hold the body of the request submitted by the client
      * @var string
      */
-    private $_requestBody       = NULL;
+    protected $_requestBody       = NULL;
 
     /**
      * Will hold the content type of the request submitted by the client
      * @var string
      */
-    private $_requestContentType= NULL;
+    protected $_requestContentType= NULL;
 
     /**
      * Will hold the user-agent string submitted by the client
      * @var string
      */
-    private $_requestUserAgent  = NULL;
+    protected $_requestUserAgent  = NULL;
 
     /**
      * Will hold the raw HTTP response (headers and all) sent back by the server
      *  that the proxy request was made to
      * @var string
      */
-    private $_rawResponse       = NULL;
+    protected $_rawResponse       = NULL;
 
     /**
      * Will hold the response body sent back by the server that the proxy
      *  request was made to
      * @var string
      */
-    private $_responseBody      = NULL;
+    protected $_responseBody      = NULL;
 
     /**
      * Will hold parsed HTTP headers sent back by the server that the proxy
      *  request was made to in key-value form
      * @var array
      */
-    private $_responseHeaders   = NULL;
+    protected $_responseHeaders   = NULL;
 
     /**
      * Will hold headers in key-value array form that were sent by the client
      * @var array
      */
-    private $_rawHeaders        = NULL;
+    protected $_rawHeaders        = NULL;
 
     /**
      * Will hold the route for the proxy request submitted by the client in
      *  the query string's 'route' parameter
      * @var string
      */
-    private $_route             = NULL;
+    protected $_route             = NULL;
 
     /**
      * Initializes the Proxy object
@@ -180,7 +180,7 @@ class AjaxProxy
      *  self::REQUEST_METHOD_POST
      * @return string The string form of the passed constant, like POST
      */
-    private static function _getStringFromRequestType($type)
+    protected static function _getStringFromRequestType($type)
     {
         $name = '';
 
@@ -202,7 +202,7 @@ class AjaxProxy
      * Gather any information we need about the request and
      *  store them in the class properties
      */
-    private function _gatherRequestInfo()
+    protected function _gatherRequestInfo()
     {
         $this->_loadRequestMethod();
         $this->_loadRequestCookies();
@@ -223,7 +223,7 @@ class AjaxProxy
      *  by PROXY_HOST
      * @throws Exception When there is no 'route' parameter
      */
-    private function _loadRoute()
+    protected function _loadRoute()
     {
         if(!key_exists('route', $_GET))
             throw new Exception("You must supply a 'route' parameter in the request");
@@ -241,7 +241,7 @@ class AjaxProxy
      *  same.
      *
      */
-    private function _loadRequestBody()
+    protected function _loadRequestBody()
     {
         $this->_requestBody = @file_get_contents('php://input');
     }
@@ -251,7 +251,7 @@ class AjaxProxy
      *  into the _requestMethod property
      * @throws Exception When there is no request method
      */
-    private function _loadRequestMethod()
+    protected function _loadRequestMethod()
     {
         if($this->_requestMethod !== NULL) return;
 
@@ -276,7 +276,7 @@ class AjaxProxy
      * Loads the user-agent string into the _requestUserAgent property
      * @throws Exception When the user agent is not sent by the client
      */
-    private function _loadRequestUserAgent()
+    protected function _loadRequestUserAgent()
     {
         if($this->_requestUserAgent !== NULL) return;
 
@@ -290,7 +290,7 @@ class AjaxProxy
      * Store the cookie array into the _requestCookies
      *  property
      */
-    private function _loadRequestCookies()
+    protected function _loadRequestCookies()
     {
         if($this->_requestCookies !== NULL) return;
 
@@ -300,7 +300,7 @@ class AjaxProxy
     /**
      * Load the content type into the _requestContentType property
      */
-    private function _loadContentType()
+    protected function _loadContentType()
     {
         $this->_loadRawHeaders();
 
@@ -314,7 +314,7 @@ class AjaxProxy
      * @throws Exception When we can't load request headers (perhaps when Apache
      *  isn't being used)
      */
-    private function _loadRawHeaders()
+    protected function _loadRawHeaders()
     {
         if($this->_rawHeaders !== NULL) return;
         
@@ -330,7 +330,7 @@ class AjaxProxy
      * @return void
      * @throws Exception when a client hostname is not permitted on a request
      */
-    private function _checkPermissions()
+    protected function _checkPermissions()
     {
         if($this->_allowedHostnames === NULL)
             return;
@@ -348,7 +348,7 @@ class AjaxProxy
      * Make the proxy request using the supplied route and the base host we got
      *  in the constructor. Store the response in _rawResponse
      */
-    private function _makeRequest()
+    protected function _makeRequest()
     {
         $url = $this->_forwardHost . $this->_route;
 
@@ -365,7 +365,7 @@ class AjaxProxy
      * @param string $url The url to make the request to
      * @return string The full HTTP response
      */
-    private function _makeCurlRequest($url)
+    protected function _makeCurlRequest($url)
     {
         $curl_handle = curl_init($url);
         /**
@@ -393,7 +393,7 @@ class AjaxProxy
      * @param string $url The url to make the request to
      * @return string The full HTTP response
      */
-    private function _makeFOpenRequest($url)
+    protected function _makeFOpenRequest($url)
     {
         $context      = $this->_buildFOpenStreamContext();
         $file_pointer = @fopen($url, 'r', null, $context);
@@ -416,7 +416,7 @@ class AjaxProxy
      * @param array $meta The associative array contianing stream information
      * @return array 
      */
-    private function _buildResponseHeaderFromMeta($meta)
+    protected function _buildResponseHeaderFromMeta($meta)
     {
         if(! array_key_exists('wrapper_data', $meta))
             throw new Exception("Did not receive a valid response from the server");
@@ -449,7 +449,7 @@ class AjaxProxy
      *  fopen() methods to work with
      * @return array The associative array containing context information
      */
-    private function _buildFOpenStreamContext()
+    protected function _buildFOpenStreamContext()
     {
         # Set the headers required to work with fopen
         $headers =  $this->_generateProxyRequestHeaders(TRUE);
@@ -478,7 +478,7 @@ class AjaxProxy
      *  server. Store them in _responseHeaders and _responseBody.
      * @throws Exception When the server does not give us a valid response
      */
-    private function _parseResponse()
+    protected function _parseResponse()
     {
         /**
          * According to the HTTP spec, we have to respect \n\n too
@@ -515,7 +515,7 @@ class AjaxProxy
      * @param string $headers A big chunk of text representing the HTTP headers
      * @return array A key-value array containing heder names and values
      */
-    private function _parseResponseHeaders($headers)
+    protected function _parseResponseHeaders($headers)
     {
         $headers = str_replace("\r", "", $headers);
         $headers = explode("\n", $headers);
@@ -551,7 +551,7 @@ class AjaxProxy
      *  of an associative array
      * @return array|string
      */
-    private function _generateProxyRequestHeaders($as_string = FALSE)
+    protected function _generateProxyRequestHeaders($as_string = FALSE)
     {
         $headers                 = array();
         $headers['Content-Type'] = $this->_requestContentType;
@@ -574,7 +574,7 @@ class AjaxProxy
      *  request
      * @return string
      */
-    private function _buildProxyRequestCookieString()
+    protected function _buildProxyRequestCookieString()
     {
         $cookie_string  = '';
 
@@ -588,7 +588,7 @@ class AjaxProxy
      * Generate headers to send back to the broswer/client based on what the
      *  server sent back
      */
-    private function _generateProxyResponseHeaders()
+    protected function _generateProxyResponseHeaders()
     {
         foreach($this->_responseHeaders as $name => $value)
         {
@@ -600,7 +600,7 @@ class AjaxProxy
     /**
      * Generate the headers and send the final response to the output stream
      */
-    private function _buildAndExecuteProxyResponse()
+    protected function _buildAndExecuteProxyResponse()
     {
         $this->_generateProxyResponseHeaders();
         
@@ -612,7 +612,7 @@ class AjaxProxy
      *  echo's in different parts of the code
      * @param mixed $data Data to dump to the output stream
      */
-    private function _output($data)
+    protected function _output($data)
     {
         echo $data;
     }
@@ -622,7 +622,7 @@ class AjaxProxy
      *  it will register PHP error and exception handlers, and die() if there
      *  is a problem. 
      */
-    private function _setErrorHandlers()
+    protected function _setErrorHandlers()
     {
         set_error_handler(array($this, 'handleError'));
         set_exception_handler(array($this, 'handleException'));
@@ -660,7 +660,7 @@ class AjaxProxy
      * Display a fatal error to the user. This will halt execution.
      * @param string $message
      */
-    private static function _sendFatalError($message)
+    protected static function _sendFatalError($message)
     {
         die($message);
     }
