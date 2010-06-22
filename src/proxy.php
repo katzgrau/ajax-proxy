@@ -28,6 +28,7 @@
  * @copyright Copyright (c) 2010 HUGE LLC (http://hugeinc.com)
  * @license New BSD License
  * @author Kenny Katzgrau <kkatzgrau@hugeinc.com>
+ * @version 1.0.0
  */
 
 /**
