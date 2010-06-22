@@ -89,6 +89,20 @@ they have an appropriate cookies domain set so that the client's browser will
 accept them at fun.example.com (for example, a domain of '*.example.com' would
 work fine.
 
+When it comes to passing routes, always make sure to urlencode them. This is
+especially true if there is a query string in your route. For example, suppose
+you had a route that looks like:
+
+    ajax/user/login?param_a=1&param_b=2
+
+This is a **malformed** call to the proxy:
+
+    http://proxy-location.com/proxy.php?route=ajax/user/login?param_a=1&param_b=2
+
+This is a **well-formed** call to the proxy:
+
+    http://proxy-location.com/proxy.php?route=ajax%2fuser%2flogin%3fparam_a%3d1%26param_b%3d2
+
 ## Dependencies
 
 This class can use two different methods to make it's requests: cURL, and the
@@ -103,6 +117,35 @@ At least one of these must be true:
    [here](http://php.net/manual/en/book.curl.php),
    but sane people will probably do something like `$ sudo apt-get install php5-curl`
 
+## Why Use ajax-proxy?
+
+Okay, an ajax proxy isn't the most complicated bit to write. Most client-side
+developers have had to write one before, and there are a number of examples on
+the internet.
+
+But proxy examples found online rarely handle the passing of cookies, and
+almost every single one that is written in PHP uses cURL. If you are on a shared
+host, and cURL isn't enabled, you're out of luck. But with ajax-proxy, both the
+passing of headers and a fallback to fopen (non-cURL) are incorporated.
+Additionally, it was written to be reused and extended.
+
+ajax-proxy it written as a standalone class which can be used by itself or
+incorporated into a larger framework. Accordingly, there are constructor options
+to handle it's own errors and exceptions (standalone) or let the errors and
+exceptions bubble up to the application.
+
+Writing a proxy tends to be a quick-and-dirty thing that most client-side
+developers don't want to spend more than a few hours writing. If you need cookie
+or non-cURL support, some extra time will be tacked on for handling some of the
+unexpected bugs and nuances of HTTP. ajax-proxy underwent 2 weeks of part-time
+development with numerous feature additions and code reviews. Additionally, it's
+fully documented with PHPDoc.
+
+With ajax-proxy, you'll get a more powerful, rock-solid proxy and less time than
+it would have taken you to write a basic one yourself.
+
+Oh, and it's incredibly easy to use.
+
 ## Special Thanks
 
 A special thanks several key players on the HUGE team that offered valuable
@@ -114,6 +157,8 @@ feedback, feature suggestions, and/or their time in a code review:
 * Martin Olsen @ NY
 * [Patrick O'Neill](http://misteroneill.com/) @ NY
 * [Tim McDuffie](http://www.tmcduffie.com/) @ NY
+* [Sean O'Connor](http://seanoc.com) @ NY
+* John Grogan @ NY
 
 ## Maintainer
 
