@@ -540,7 +540,7 @@ class AjaxProxy
                 $value = substr($header, $field_end + 1);
             }
             
-            $parsed[$field] = $value;
+            $parsed[$field][] = $value;
         }
 
         return $parsed;
@@ -591,10 +591,15 @@ class AjaxProxy
      */
     protected function _generateProxyResponseHeaders()
     {
-        foreach($this->_responseHeaders as $name => $value)
+        foreach($this->_responseHeaders as $name => $values)
         {
             if($name != 'status')
-                header("$name: $value");
+            {
+				foreach($values as $value)
+				{ 
+					header("$name: $value", false);
+				}
+			}
         }
     }
 
